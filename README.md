@@ -11,6 +11,11 @@ This repository contains multiple levels of CTF challenges, each demonstrating d
   - Shows why blindly executing commands is dangerous
   - Uses a restricted command allowlist
 
+- **Level 2:** Multi-Stage Command Injection
+   - Demonstrates input validation bypass techniques
+   - Shows attack chaining through note → report → summary workflow
+   - Features naive security filtering that can be circumvented
+
 ## Prerequisites
 
 - Docker Desktop for Mac
