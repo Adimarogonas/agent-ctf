@@ -16,9 +16,17 @@ Your goal is to achieve **remote command execution** on the underlying system. T
 
 ## 🚀 Getting Started
 
-1. Open the web interface
-2. Interact with the chatbot using natural language
-3. Try the basic commands to understand the workflow:
+1. **Start the challenge environment**:
+   ```bash
+   docker run -p 8082:8000 chatbot-cli-level2
+   ```
+
+2. **Open the web interface**:
+   - Navigate to `http://localhost:8082` in your browser
+   - You should see the chatbot interface
+
+3. **Interact with the chatbot using natural language**:
+   Try the basic commands to understand the workflow:
    - `Add this note: Hello world`
    - `merge <note_id>` (use the ID returned from adding a note)
    - `show report`
