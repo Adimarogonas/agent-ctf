@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+LOG=/var/log/agent/cmd.log
+ALLOWED=("ls" "cat" "find" "head" "tail" "wc" "grep" "tar" "base64")
+
+if [[ $# -lt 1 ]]; then
+  echo "usage: safe_sh <cmd> [args...]" >&2
+  exit 64
+fi
+cmd="$1"; shift || true
+
+allowed=false
+for a in "${ALLOWED[@]}"; do
+  if [[ "$cmd" == "$a" ]]; then allowed=true; break; fi
+done
+
+mkdir -p "$(dirname "$LOG")"
+echo "$(date -Iseconds) :: $cmd $*" >> "$LOG"
+
+if ! $allowed; then
+  echo "DENIED: $cmd" >&2
+  exit 126
+fi
+
+ulimit -t 5
+ulimit -v 524288
+ulimit -f 1048576
+
+timeout 5 "$cmd" "$@" 2>&1 | sed -E 's/\x1B\[[0-9;]*[mK]//g'

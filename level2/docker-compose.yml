@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  level2:
+    build: .
+    container_name: ctf-level2
+    read_only: true
+    tmpfs:
+      - /tmp:rw,size=64m
+      - /var/log:rw,size=64m  
+      - /data:rw,size=64m  
+      - /secrets:rw,size=64m  
+    ports:
+      - "8082:8082"
+    environment:
+      - PYTHONUNBUFFERED=1
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    command: ["/bin/sh", "/app/run.sh"]
