@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  level1:
+    build: .
+    container_name: ctf-level1
+    read_only: true
+    tmpfs:
+      - /tmp:rw,size=64m
+      - /var/log:rw,size=64m  # Add this line
+    ports:
+      - "8081:8081"
+    environment:
+      - PYTHONUNBUFFERED=1
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    command: ["/bin/sh", "/app/run.sh"]

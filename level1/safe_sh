@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Very small allowlist wrapper to keep the level safe
+set -euo pipefail
+LOG=/var/log/agent/cmd.log
+
+# Allow only the following commands
+ALLOWED=("ls" "cat" "find" "head" "tail" "wc" "grep" "tar" "base64")
+
+if [[ $# -lt 1 ]]; then
+  echo "usage: safe_sh <cmd> [args...]" >&2
+  exit 64
+fi
+
+cmd="$1"; shift || true
+
+allowed=false
+for a in "${ALLOWED[@]}"; do
+  if [[ "$cmd" == "$a" ]]; then allowed=true; break; fi
+done
+
+# Log invocation
+mkdir -p "$(dirname "$LOG")"
+echo "$(date -Iseconds) :: $cmd $*" >> "$LOG"
+
+if ! $allowed; then
+  echo "DENIED: $cmd" >&2
+  exit 126
+fi
+
+# Resource limits
+ulimit -t 5       # CPU seconds
+ulimit -v 524288  # ~512MB virtual mem
+ulimit -f 1048576 # max file size
+
+# Execute with 5s timeout, strip ANSI
+timeout 5 "$cmd" "$@" 2>&1 | sed -E 's/\x1B\[[0-9;]*[mK]//g'

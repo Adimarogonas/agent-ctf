@@ -1,0 +1,25 @@
+FROM python:3.11-slim
+
+# System deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash coreutils findutils grep tar curl jq \
+  && rm -rf /var/lib/apt/lists/*
+
+# Create app dir
+WORKDIR /app
+
+# Copy files
+COPY safe_sh /usr/local/bin/safe_sh
+RUN chmod 0755 /usr/local/bin/safe_sh
+
+COPY seed.sh /seed.sh
+RUN chmod 0755 /seed.sh
+
+COPY app/ ./
+RUN chmod 0755 /app/run.sh
+
+# Python deps (none needed beyond stdlib for this minimal agent)
+
+# Prepare challenge data at runtime (not image build) so tmpfs is used
+# Entrypoint will call /seed.sh before starting the server
+EXPOSE 8081
