@@ -20,7 +20,7 @@ services:
       BONSAI_BASE_URL: ${BONSAI_BASE_URL:-http://127.0.0.1:8000/v1}
       BONSAI_MODEL: ${BONSAI_MODEL:-bonsai-8b}
       BONSAI_API_KEY: ${BONSAI_API_KEY:-local}
-      BONSAI_TIMEOUT_SECONDS: ${BONSAI_TIMEOUT_SECONDS:-120}
+      BONSAI_TIMEOUT_SECONDS: ${BONSAI_TIMEOUT_SECONDS:-300}
       BONSAI_MAX_TOKENS: ${BONSAI_MAX_TOKENS:-256}
       BONSAI_MODEL_FILE: ${BONSAI_MODEL_FILE:-Bonsai-8B.gguf}
       BONSAI_MODEL_URL: ${BONSAI_MODEL_URL:-https://huggingface.co/prism-ml/Bonsai-8B-gguf/resolve/main/Bonsai-8B.gguf?download=true}
