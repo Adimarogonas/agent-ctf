@@ -6,7 +6,7 @@ services:
     read_only: true
     tmpfs:
       - /tmp:rw,size=64m
-      - /var/log:rw,size=64m  # Add this line
+      - /var/log:rw,size=64m  
     ports:
       - "8081:8081"
     environment:

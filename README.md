@@ -1,26 +1,23 @@
-# AI Agent CTF Challenge Series 🎯
+# AI Agent CTF Challenge Series
 
-A series of Capture The Flag (CTF) challenges demonstrating security risks in AI agents with command execution capabilities.
+This repository contains four self-contained Docker CTF levels that explore common AI-agent security failures. Levels 1 and 2 use the original command-execution and note/report flows. Levels 3 and 4 now boot a local Prism ML Bonsai 8B runtime inside the same container as the challenge app.
 
-## Overview
+## Available Levels
 
-This repository contains multiple levels of CTF challenges, each demonstrating different security concepts around AI agents and command execution:
+| Level | Focus | Port | README |
+|---|---|---:|---|
+| Level 1 | Command execution via API | `8081` | [level1/README.md](level1/README.md) |
+| Level 2 | Multi-stage chatbot command injection | `8082` | [level2/README.md](level2/README.md) |
+| Level 3 | Bonsai triage agent with prompt injection | `8083` | [level3/README.md](level3/README.md) |
+| Level 4 | Bonsai memory poisoning and tool abuse | `8084` | [level4/README.md](level4/README.md) |
 
-- **Level 1:** Command Execution via API
-  - Demonstrates basic command injection risks
-  - Shows why blindly executing commands is dangerous
-  - Uses a restricted command allowlist
-
-- **Level 2:** Multi-Stage Command Injection
-   - Demonstrates input validation bypass techniques
-   - Shows attack chaining through note → report → summary workflow
-   - Features naive security filtering that can be circumvented
+For the internal Bonsai runtime details, see [BONSAI_LOCAL.md](BONSAI_LOCAL.md) before starting Levels 3 or 4.
 
 ## Prerequisites
 
-- Docker Desktop for Mac
-- curl
-- jq (for pretty JSON output)
+- Docker Desktop
+- `curl`
+- `jq` for formatting JSON responses
 
 ```bash
 brew install jq
@@ -34,48 +31,40 @@ git clone https://github.com/yourusername/agent-ctf.git
 cd agent-ctf
 ```
 
-2. Start a level (example with Level 1):
+2. Start a non-Bonsai level:
 ```bash
 cd level1
 docker compose up --build
 ```
 
-3. Try the challenge by interacting with the API endpoint
+3. For a Bonsai-backed level, run the level container directly. The first startup downloads `prism-ml/Bonsai-8B.gguf` into `/models` inside the container and then launches both the internal model server and the app:
+```bash
+cd level3
+docker compose up --build
+```
 
-## Challenge Levels
+```bash
+cd level4
+docker compose up --build
+```
 
-### Level 1: "Helpful... and Root?"
-- **Goal:** Find and read a hidden flag file
-- **Concept:** Command execution via API endpoints
-- **Target:** `/tmp/ctf/level1/flag.txt`
-- [Level 1 Details](level1/README.md)
+4. Wait for the model download and internal Bonsai server boot to finish on the first run, then open the matching level URL in your browser or call its HTTP endpoint directly.
 
 ## Security Features
 
 - Containers run read-only
 - Dropped capabilities
-- Command allowlisting
-- Resource limits
-- Temporary filesystems
+- tmpfs-backed runtime directories
+- Command allowlisting where applicable
 
 ## Development
 
-Each level follows this structure:
-```
-levelN/
-├── docker-compose.yml
-├── Dockerfile
-├── seed.sh
-├── safe_sh
-├── app/
-│   ├── agent.py
-│   └── run.sh
-└── README.md
-```
+Each level lives in its own directory and keeps the challenge files local to that level. The Bonsai-backed levels start an internal `llama.cpp`-compatible Bonsai runtime inside the same container, cache the model under `/models`, and point the app at `127.0.0.1` instead of an external model service.
 
 ## Contributing
 
 Want to add a level? PRs welcome! Each level should:
+
 1. Be self-contained in Docker
 2. Have clear learning objectives
 3. Include proper security controls

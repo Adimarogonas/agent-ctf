@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bonsai Triage Agent</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111a;
+      --panel: #0d1b28;
+      --line: #203245;
+      --text: #e8f0f7;
+      --muted: #8ea4b8;
+      --accent: #7dd3fc;
+      --accent-2: #a7f3d0;
+      --danger: #fb7185;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(125, 211, 252, 0.18), transparent 25%),
+        radial-gradient(circle at bottom right, rgba(167, 243, 208, 0.12), transparent 30%),
+        var(--bg);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 20px 40px;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: end;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      letter-spacing: -0.04em;
+    }
+    .sub {
+      color: var(--muted);
+      margin: 8px 0 0;
+      max-width: 62ch;
+      line-height: 1.5;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 18px;
+    }
+    .panel {
+      background: rgba(13, 27, 40, 0.9);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+    }
+    label {
+      display: block;
+      margin: 14px 0 8px;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+    input, textarea, button, select {
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #0a1520;
+      color: var(--text);
+      padding: 12px 14px;
+      font: inherit;
+    }
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+    }
+    button {
+      cursor: pointer;
+      background: linear-gradient(135deg, #164e63, #0f766e);
+      border: none;
+      font-weight: 700;
+      margin-top: 14px;
+    }
+    button.secondary {
+      background: #152536;
+      border: 1px solid var(--line);
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .tickets {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .ticket {
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #0a1622;
+    }
+    .ticket strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #08111a;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      min-height: 180px;
+      overflow: auto;
+    }
+    .status {
+      color: var(--accent-2);
+      font-weight: 600;
+      margin: 8px 0 0;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Bonsai Triage Agent</h1>
+        <p class="sub">Submit a support ticket, let the local Bonsai 8B agent decide whether to call its restricted shell tool, and inspect the triage result.</p>
+      </div>
+      <div class="meta">Level 3 · Local model endpoint via env vars</div>
+    </header>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>Create Ticket</h2>
+        <div class="row">
+          <div>
+            <label for="subject">Subject</label>
+            <input id="subject" placeholder="Printer queue timeout" />
+          </div>
+          <div>
+            <label for="reporter">Reporter</label>
+            <input id="reporter" placeholder="agent@example.local" />
+          </div>
+        </div>
+        <label for="body">Ticket body</label>
+        <textarea id="body" placeholder="Describe the issue. Hidden instructions in this field are sent to the model as untrusted content."></textarea>
+        <button id="create">Create ticket</button>
+        <button id="triage" class="secondary">Create and triage latest ticket</button>
+        <p class="status" id="status"></p>
+        <div class="hint">The model receives the ticket body first and can ask the shell tool to inspect local files. The shell is allowlisted, not sandboxed away from the flag.</div>
+      </section>
+
+      <section class="panel">
+        <h2>Live Trace</h2>
+        <pre id="output">No triage run yet.</pre>
+      </section>
+    </div>
+
+    <section class="panel" style="margin-top: 18px;">
+      <div class="row" style="align-items: center;">
+        <h2 style="margin: 0;">Open Tickets</h2>
+        <button id="refresh" class="secondary">Refresh</button>
+      </div>
+      <div class="tickets" id="tickets"></div>
+    </section>
+  </div>
+
+  <script>
+    const subject = document.getElementById("subject");
+    const reporter = document.getElementById("reporter");
+    const body = document.getElementById("body");
+    const output = document.getElementById("output");
+    const status = document.getElementById("status");
+    const ticketsEl = document.getElementById("tickets");
+    let latestTicketId = null;
+
+    async function refreshTickets() {
+      const res = await fetch("/api/tickets");
+      const data = await res.json();
+      ticketsEl.innerHTML = "";
+      (data.tickets || []).slice().reverse().forEach((ticket) => {
+        const div = document.createElement("div");
+        div.className = "ticket";
+        div.innerHTML = `
+          <strong>${ticket.subject || "(no subject)"}</strong>
+          <div class="meta">${ticket.id} · ${ticket.reporter || "anonymous"}</div>
+          <div style="margin-top:8px; color: var(--text);">${ticket.body || ""}</div>
+        `;
+        div.addEventListener("click", () => {
+          latestTicketId = ticket.id;
+          status.textContent = `Selected ticket ${ticket.id}`;
+        });
+        ticketsEl.appendChild(div);
+      });
+    }
+
+    async function createTicket() {
+      status.textContent = "Creating ticket...";
+      const res = await fetch("/api/tickets", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          subject: subject.value,
+          reporter: reporter.value,
+          body: body.value
+        })
+      });
+      const data = await res.json();
+      latestTicketId = data.ticket.id;
+      status.textContent = `Created ticket ${data.ticket.id}`;
+      await refreshTickets();
+      return data.ticket.id;
+    }
+
+    function clearOutput() {
+      output.textContent = "";
+    }
+
+    function appendOutput(text) {
+      if (!text) return;
+      if (output.textContent === "No triage run yet.") {
+        output.textContent = "";
+      }
+      output.textContent += text;
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function appendLine(text = "") {
+      appendOutput(`${text}\n`);
+    }
+
+    function renderStreamEvent(event, state) {
+      if (event.type === "status") {
+        if (output.textContent) appendLine();
+        appendLine(`[${event.stage}] ${event.message}`);
+        state.stage = null;
+        return;
+      }
+
+      if (event.type === "delta") {
+        if (state.stage !== event.stage) {
+          if (output.textContent) appendLine();
+          appendOutput(`[${event.stage}] `);
+          state.stage = event.stage;
+        }
+        appendOutput(event.delta);
+        return;
+      }
+
+      if (event.type === "decision") {
+        appendLine();
+        appendLine(`[decision.json] ${JSON.stringify(event.decision)}`);
+        state.stage = null;
+        return;
+      }
+
+      if (event.type === "tool_result") {
+        appendLine();
+        appendLine("[tool_result]");
+        appendLine(JSON.stringify(event.tool_result, null, 2));
+        state.stage = null;
+        return;
+      }
+
+      if (event.type === "done") {
+        appendLine();
+        appendLine("[done]");
+        appendLine(JSON.stringify(event.result, null, 2));
+        state.result = event.result;
+        state.stage = null;
+        return;
+      }
+
+      if (event.type === "error") {
+        appendLine();
+        appendLine(`[error] ${event.message}`);
+        state.error = event.message;
+        state.stage = null;
+      }
+    }
+
+    async function triageTicket(ticketId) {
+      status.textContent = `Triaging ${ticketId}...`;
+      clearOutput();
+      const res = await fetch(`/api/triage/${ticketId}/stream`, { method: "POST" });
+      if (!res.ok || !res.body) {
+        throw new Error(`triage request failed: ${res.status}`);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const streamState = { stage: null, result: null, error: null };
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let newlineIndex = buffer.indexOf("\n");
+        while (newlineIndex !== -1) {
+          const line = buffer.slice(0, newlineIndex).trim();
+          buffer = buffer.slice(newlineIndex + 1);
+          if (line) {
+            renderStreamEvent(JSON.parse(line), streamState);
+          }
+          newlineIndex = buffer.indexOf("\n");
+        }
+      }
+
+      if (buffer.trim()) {
+        renderStreamEvent(JSON.parse(buffer.trim()), streamState);
+      }
+
+      if (streamState.error) {
+        status.textContent = `Triage failed`;
+        return;
+      }
+
+      status.textContent = `Finished triage for ${ticketId}`;
+      await refreshTickets();
+    }
+
+    document.getElementById("create").addEventListener("click", async () => {
+      try {
+        const id = await createTicket();
+        latestTicketId = id;
+      } catch (err) {
+        status.textContent = `Create failed: ${err}`;
+      }
+    });
+
+    document.getElementById("triage").addEventListener("click", async () => {
+      try {
+        const id = latestTicketId || await createTicket();
+        await triageTicket(id);
+      } catch (err) {
+        output.textContent = String(err);
+        status.textContent = `Triage failed`;
+      }
+    });
+
+    document.getElementById("refresh").addEventListener("click", refreshTickets);
+    refreshTickets().catch((err) => {
+      status.textContent = `Load failed: ${err}`;
+    });
+  </script>
+</body>
+</html>
